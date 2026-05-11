@@ -9,7 +9,6 @@ A production-ready, bilingual (Arabic/English) performance management system for
 - **Styling**: Tailwind CSS (utility-first, RTL support)
 - **Database**: PostgreSQL + Prisma ORM 7
 - **Auth**: JWT (httpOnly cookies)
-- **Email**: Resend
 - **Validation**: Zod + React Hook Form
 - **State**: Zustand
 
@@ -20,7 +19,6 @@ A production-ready, bilingual (Arabic/English) performance management system for
 - Immutable locking at each stage (enforced at UI + API level)
 - Weighted scoring: Goals 60% + Competencies 40%
 - Arabic/English language switcher with full RTL support
-- Email notifications via Resend
 - Responsive, mobile-friendly design
 
 ## Setup
@@ -42,7 +40,6 @@ Edit `.env`:
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/alamah_pms"
 JWT_SECRET="your-super-secret-jwt-key-min-32-chars"
-RESEND_API_KEY="re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
@@ -119,7 +116,6 @@ Final Score = (Σ goal_rating/5 × goal_weight / total_goal_weight × 60)
 │   ├── auth.ts                         # JWT + bcrypt helpers
 │   ├── db.ts                           # Prisma client singleton
 │   ├── score.ts                        # Score calculation utility
-│   ├── email.ts                        # Resend email helpers
 │   ├── generated/prisma/               # Prisma 7 generated client
 │   └── i18n/                           # Translations + React context
 ├── prisma/

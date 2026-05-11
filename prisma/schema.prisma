@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  EMPLOYEE
+  MANAGER
+}
+
+enum CardStatus {
+  DRAFT
+  SELF_SUBMITTED
+  MANAGER_SUBMITTED
+  FINALIZED
+}
+
+model User {
+  id           String            @id @default(cuid())
+  email        String            @unique
+  password     String
+  nameEn       String
+  nameAr       String
+  role         Role              @default(EMPLOYEE)
+  managerId    String?
+  manager      User?             @relation("ManagerEmployees", fields: [managerId], references: [id])
+  employees    User[]            @relation("ManagerEmployees")
+  cards        PerformanceCard[] @relation("EmployeeCards")
+  managedCards PerformanceCard[] @relation("ManagerCards")
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+model PerformanceCard {
+  id                    String       @id @default(cuid())
+  employeeId            String
+  employee              User         @relation("EmployeeCards", fields: [employeeId], references: [id])
+  managerId             String
+  manager               User         @relation("ManagerCards", fields: [managerId], references: [id])
+  periodLabel           String
+  status                CardStatus   @default(DRAFT)
+  selfReviewLockedAt    DateTime?
+  managerReviewLockedAt DateTime?
+  finalizedAt           DateTime?
+  finalScore            Float?
+  goals                 Goal[]
+  competencies          Competency[]
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+}
+
+model Goal {
+  id             String          @id @default(cuid())
+  cardId         String
+  card           PerformanceCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  titleEn        String
+  titleAr        String
+  weight         Float
+  selfRating     Int?
+  selfComment    String?
+  managerRating  Int?
+  managerComment String?
+  finalRating    Int?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model Competency {
+  id             String          @id @default(cuid())
+  cardId         String
+  card           PerformanceCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  titleEn        String
+  titleAr        String
+  weight         Float
+  selfRating     Int?
+  selfComment    String?
+  managerRating  Int?
+  managerComment String?
+  finalRating    Int?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
