@@ -5,7 +5,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -101,7 +100,7 @@ model PerformanceCard {
   managerReviewLockedAt  DateTime?
   calibrationCompletedAt DateTime?
   finalizedAt            DateTime?
-  calibrationNotes       String?
+  calibrationNotes       String?      
   finalScore             Float?
   goals                  Goal[]
   competencies           Competency[]
