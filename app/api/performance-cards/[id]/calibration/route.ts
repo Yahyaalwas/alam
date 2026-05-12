@@ -11,10 +11,6 @@ interface FinalRatingItem {
   finalRating: number | null
 }
 
-/**
- * @deprecated Use POST /api/performance-cards/[id]/calibration instead.
- * Kept for backward compatibility.
- */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -46,22 +42,34 @@ export async function POST(
       return Response.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Accept both CALIBRATION_MEETING (new flow) and MANAGER_REVIEW (legacy) stages
-    if (card.status !== 'CALIBRATION_MEETING' && card.status !== 'MANAGER_REVIEW') {
+    if (card.status !== 'CALIBRATION_MEETING') {
       return Response.json(
-        {
-          error: `Card must be in CALIBRATION_MEETING or MANAGER_REVIEW stage (current: ${card.status})`,
-        },
+        { error: `Card is not in CALIBRATION_MEETING stage (current: ${card.status})` },
         { status: 400 }
       )
     }
 
     const body = await request.json()
-    const { goals, competencies } = body as {
+    const { goals, competencies, notes } = body as {
       goals: FinalRatingItem[]
       competencies: FinalRatingItem[]
+      notes: string
     }
 
+    if (!Array.isArray(goals) || !Array.isArray(competencies)) {
+      return Response.json({ error: 'goals and competencies arrays are required' }, { status: 400 })
+    }
+
+    // Validate ratings in range 1-5 or null
+    for (const item of [...goals, ...competencies]) {
+      if (item.finalRating !== null && item.finalRating !== undefined) {
+        if (item.finalRating < 1 || item.finalRating > 5) {
+          return Response.json({ error: 'Ratings must be between 1 and 5' }, { status: 400 })
+        }
+      }
+    }
+
+    // Merge incoming ratings with card data to calculate score
     const mergedGoals = card.goals.map((g) => {
       const update = goals.find((u) => u.id === g.id)
       return {
@@ -98,12 +106,20 @@ export async function POST(
         where: { id },
         data: {
           status: 'FINALIZED',
-          finalizedAt: now,
+          calibrationNotes: notes ?? null,
           calibrationCompletedAt: now,
+          finalizedAt: now,
           finalScore,
         },
       }),
     ])
+
+    await createAuditLog({
+      action: 'CALIBRATION_COMPLETED',
+      userId: session.userId,
+      cardId: id,
+      metadata: { finalScore, notes: notes ?? null },
+    })
 
     await createAuditLog({
       action: 'CARD_FINALIZED',
@@ -114,7 +130,7 @@ export async function POST(
 
     return Response.json({ ok: true, finalScore })
   } catch (error) {
-    console.error('[POST /api/performance-cards/[id]/finalize]', error)
+    console.error('[POST /api/performance-cards/[id]/calibration]', error)
     return Response.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

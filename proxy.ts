@@ -1,54 +1,99 @@
-import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/auth";
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyToken } from '@/lib/auth'
+import type { Role } from './types'
+
+function getRoleDestination(role: Role): string {
+  switch (role) {
+    case 'SUPER_ADMIN':
+    case 'ADMIN':
+      return '/dashboard/admin'
+    case 'DEPARTMENT_MANAGER':
+      return '/dashboard/manager'
+    case 'EMPLOYEE':
+    default:
+      return '/dashboard/employee'
+  }
+}
 
 export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname } = request.nextUrl
 
-  if (pathname.startsWith("/_next") || pathname.startsWith("/favicon")) {
-    return NextResponse.next();
+  if (pathname.startsWith('/_next') || pathname.startsWith('/favicon')) {
+    return NextResponse.next()
   }
 
-  const token = request.cookies.get("token")?.value;
-  const payload = token ? verifyToken(token) : null;
+  const token = request.cookies.get('token')?.value
+  const payload = token ? verifyToken(token) : null
+  const role = payload?.role as Role | undefined
 
   // Redirect logged-in users away from /login
-  if (pathname.startsWith("/login")) {
-    if (payload) {
-      const dest = payload.role === "MANAGER" ? "/dashboard/manager" : "/dashboard/employee";
-      return NextResponse.redirect(new URL(dest, request.url));
+  if (pathname.startsWith('/login')) {
+    if (payload && role) {
+      return NextResponse.redirect(new URL(getRoleDestination(role), request.url))
     }
-    return NextResponse.next();
+    return NextResponse.next()
   }
 
   // Allow public API routes
-  if (pathname.startsWith("/api/auth/login")) {
-    return NextResponse.next();
+  if (pathname.startsWith('/api/auth/login')) {
+    return NextResponse.next()
   }
 
   // Protect all other routes
-  if (!payload) {
-    const response = NextResponse.redirect(new URL("/login", request.url));
-    response.cookies.delete("token");
-    return response;
+  if (!payload || !role) {
+    const response = NextResponse.redirect(new URL('/login', request.url))
+    response.cookies.delete('token')
+    return response
   }
 
-  // Role-based guards
-  if (pathname.startsWith("/dashboard/manager") && payload.role !== "MANAGER") {
-    return NextResponse.redirect(new URL("/dashboard/employee", request.url));
+  // Role-based dashboard guards
+  if (pathname.startsWith('/dashboard/admin')) {
+    if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
+      return NextResponse.redirect(new URL(getRoleDestination(role), request.url))
+    }
   }
 
-  if (pathname.startsWith("/dashboard/employee") && payload.role !== "EMPLOYEE") {
-    return NextResponse.redirect(new URL("/dashboard/manager", request.url));
+  if (pathname.startsWith('/dashboard/manager')) {
+    if (role !== 'DEPARTMENT_MANAGER' && role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
+      return NextResponse.redirect(new URL(getRoleDestination(role), request.url))
+    }
   }
 
-  if (pathname === "/dashboard") {
-    const dest = payload.role === "MANAGER" ? "/dashboard/manager" : "/dashboard/employee";
-    return NextResponse.redirect(new URL(dest, request.url));
+  if (pathname.startsWith('/dashboard/employee')) {
+    if (role !== 'EMPLOYEE') {
+      return NextResponse.redirect(new URL(getRoleDestination(role), request.url))
+    }
   }
 
-  return NextResponse.next();
+  // Department management: admin only
+  if (pathname.startsWith('/departments')) {
+    if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
+      return NextResponse.redirect(new URL(getRoleDestination(role), request.url))
+    }
+  }
+
+  // User management: admin only
+  if (pathname.startsWith('/users')) {
+    if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
+      return NextResponse.redirect(new URL(getRoleDestination(role), request.url))
+    }
+  }
+
+  // Analytics: admin or manager
+  if (pathname.startsWith('/analytics')) {
+    if (role === 'EMPLOYEE') {
+      return NextResponse.redirect(new URL(getRoleDestination(role), request.url))
+    }
+  }
+
+  // Root /dashboard redirect
+  if (pathname === '/dashboard') {
+    return NextResponse.redirect(new URL(getRoleDestination(role), request.url))
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
-};
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+}
