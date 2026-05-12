@@ -20,6 +20,17 @@ async function main() {
   await prisma.performanceCard.deleteMany()
   await prisma.department.deleteMany()
   await prisma.user.deleteMany()
+  await prisma.coreObjective.deleteMany()
+
+  // Seed core objectives (3 defaults — admins can edit these in Settings)
+  await prisma.coreObjective.createMany({
+    data: [
+      { titleEn: 'Communication Skills', titleAr: 'مهارات التواصل', weight: 35, order: 0, isActive: true },
+      { titleEn: 'Teamwork & Collaboration', titleAr: 'العمل الجماعي والتعاون', weight: 35, order: 1, isActive: true },
+      { titleEn: 'Problem Solving', titleAr: 'حل المشكلات', weight: 30, order: 2, isActive: true },
+    ],
+  })
+  console.log('  ✓ Core objectives seeded')
 
   const superAdminPassword = await bcrypt.hash('admin123', 12)
   const managerPassword = await bcrypt.hash('manager123', 12)

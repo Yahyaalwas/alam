@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  Settings,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar } from '@/components/ui/avatar'
@@ -48,14 +49,18 @@ function getNavSections(role: Role): NavSection[] {
       ]},
       { title: 'Performance', items: [
         { label: 'Evaluations', href: '/performance-cards', icon: <ClipboardList className="h-4 w-4" /> },
+        { label: 'Goals & KPIs', href: '/goals', icon: <Target className="h-4 w-4" /> },
         { label: 'Analytics', href: '/analytics', icon: <BarChart3 className="h-4 w-4" /> },
+      ]},
+      { title: 'Admin', items: [
+        { label: 'Settings', href: '/settings', icon: <Settings className="h-4 w-4" /> },
       ]},
     ]
   }
   if (role === 'DEPARTMENT_MANAGER') {
     return [
       { title: 'Overview', items: [{ label: 'Dashboard', href: '/dashboard/manager', icon: <LayoutDashboard className="h-4 w-4" />, exact: true }] },
-      { title: 'Team', items: [{ label: 'My Team', href: '/users', icon: <Users className="h-4 w-4" /> }] },
+      { title: 'Team', items: [{ label: 'My Team', href: '/teams', icon: <Users className="h-4 w-4" /> }] },
       { title: 'Performance', items: [
         { label: 'Evaluations', href: '/performance-cards', icon: <ClipboardList className="h-4 w-4" /> },
         { label: 'Goals & KPIs', href: '/goals', icon: <Target className="h-4 w-4" /> },

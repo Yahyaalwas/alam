@@ -79,6 +79,20 @@ export function proxy(request: NextRequest) {
     }
   }
 
+  // Team management: managers only (dedicated view)
+  if (pathname.startsWith('/teams')) {
+    if (role !== 'DEPARTMENT_MANAGER' && role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
+      return NextResponse.redirect(new URL(getRoleDestination(role), request.url))
+    }
+  }
+
+  // Settings: admin/super admin only
+  if (pathname.startsWith('/settings')) {
+    if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
+      return NextResponse.redirect(new URL(getRoleDestination(role), request.url))
+    }
+  }
+
   // Analytics: admin or manager
   if (pathname.startsWith('/analytics')) {
     if (role === 'EMPLOYEE') {

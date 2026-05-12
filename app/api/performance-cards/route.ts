@@ -5,7 +5,7 @@ import { hasPermission } from '@/lib/permissions'
 import { createAuditLog } from '@/lib/audit'
 import type { Role } from '@/types'
 
-const DEFAULT_COMPETENCIES = [
+const FALLBACK_COMPETENCIES = [
   { titleEn: 'Communication', titleAr: 'التواصل', weight: 35 },
   { titleEn: 'Teamwork', titleAr: 'العمل الجماعي', weight: 35 },
   { titleEn: 'Problem Solving', titleAr: 'حل المشكلات', weight: 30 },
@@ -153,6 +153,14 @@ export async function POST(request: Request) {
       )
     }
 
+    const coreObjectives = await prisma.coreObjective.findMany({
+      where: { isActive: true },
+      orderBy: { order: 'asc' },
+    })
+    const competenciesData = coreObjectives.length > 0
+      ? coreObjectives.map((o) => ({ titleEn: o.titleEn, titleAr: o.titleAr, weight: o.weight }))
+      : FALLBACK_COMPETENCIES
+
     const card = await prisma.$transaction(async (tx) => {
       const newCard = await tx.performanceCard.create({
         data: {
@@ -165,7 +173,7 @@ export async function POST(request: Request) {
       })
 
       await tx.competency.createMany({
-        data: DEFAULT_COMPETENCIES.map((c) => ({
+        data: competenciesData.map((c) => ({
           cardId: newCard.id,
           ...c,
         })),
