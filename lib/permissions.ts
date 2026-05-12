@@ -32,6 +32,8 @@ export const PERMISSIONS = {
   SUBMIT_SELF_REVIEW: ['EMPLOYEE'] as Role[],
   SUBMIT_MANAGER_REVIEW: ['DEPARTMENT_MANAGER', 'ADMIN', 'SUPER_ADMIN'] as Role[],
   FINALIZE_CARD: ['DEPARTMENT_MANAGER', 'ADMIN', 'SUPER_ADMIN'] as Role[],
+  // Core objectives
+  MANAGE_CORE_OBJECTIVES: ['SUPER_ADMIN', 'ADMIN'] as Role[],
 } as const
 
 export type Permission = keyof typeof PERMISSIONS
