@@ -20,6 +20,17 @@ async function main() {
 
   const managerPassword = await bcrypt.hash('manager123', 10)
   const employeePassword = await bcrypt.hash('employee123', 10)
+  const hrPassword = await bcrypt.hash('hr123', 10)
+
+  await prisma.user.create({
+    data: {
+      email: 'hr@alamah.com',
+      password: hrPassword,
+      nameEn: 'Layla Al-Farsi',
+      nameAr: 'ليلى الفارسي',
+      role: 'HR',
+    },
+  })
 
   const manager = await prisma.user.create({
     data: {
@@ -76,6 +87,7 @@ async function main() {
   }
 
   console.log('\nSeed complete!')
+  console.log('  hr@alamah.com       / hr123')
   console.log('  manager@alamah.com  / manager123')
   console.log('  ahmed@alamah.com    / employee123')
   console.log('  fatima@alamah.com   / employee123')
