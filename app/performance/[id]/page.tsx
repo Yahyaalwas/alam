@@ -35,9 +35,11 @@ export default async function PerformancePage({
 
   const isEmployee = card.employeeId === session.userId
   const isManager = card.managerId === session.userId
+  const isHR = session.role === 'HR'
 
-  if (!isEmployee && !isManager) {
-    redirect('/dashboard/employee')
+  if (!isEmployee && !isManager && !isHR) {
+    const dest = session.role === 'MANAGER' ? '/dashboard/manager' : '/dashboard/employee'
+    redirect(dest)
   }
 
   const serializedCard: CardWithRelations = JSON.parse(JSON.stringify(card))

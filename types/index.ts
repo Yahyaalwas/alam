@@ -1,4 +1,4 @@
-export type UserRole = 'EMPLOYEE' | 'MANAGER'
+export type UserRole = 'EMPLOYEE' | 'MANAGER' | 'HR'
 
 export type CardStatus = 'DRAFT' | 'SELF_SUBMITTED' | 'MANAGER_SUBMITTED' | 'FINALIZED'
 

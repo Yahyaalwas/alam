@@ -14,7 +14,9 @@ export function proxy(request: NextRequest) {
   // Redirect logged-in users away from /login
   if (pathname.startsWith("/login")) {
     if (payload) {
-      const dest = payload.role === "MANAGER" ? "/dashboard/manager" : "/dashboard/employee";
+      let dest = "/dashboard/employee";
+      if (payload.role === "MANAGER") dest = "/dashboard/manager";
+      if (payload.role === "HR") dest = "/dashboard/hr";
       return NextResponse.redirect(new URL(dest, request.url));
     }
     return NextResponse.next();
@@ -34,15 +36,26 @@ export function proxy(request: NextRequest) {
 
   // Role-based guards
   if (pathname.startsWith("/dashboard/manager") && payload.role !== "MANAGER") {
-    return NextResponse.redirect(new URL("/dashboard/employee", request.url));
+    let dest = "/dashboard/employee";
+    if (payload.role === "HR") dest = "/dashboard/hr";
+    return NextResponse.redirect(new URL(dest, request.url));
   }
 
   if (pathname.startsWith("/dashboard/employee") && payload.role !== "EMPLOYEE") {
-    return NextResponse.redirect(new URL("/dashboard/manager", request.url));
+    let dest = "/dashboard/manager";
+    if (payload.role === "HR") dest = "/dashboard/hr";
+    return NextResponse.redirect(new URL(dest, request.url));
+  }
+
+  if (pathname.startsWith("/dashboard/hr") && payload.role !== "HR") {
+    const dest = payload.role === "MANAGER" ? "/dashboard/manager" : "/dashboard/employee";
+    return NextResponse.redirect(new URL(dest, request.url));
   }
 
   if (pathname === "/dashboard") {
-    const dest = payload.role === "MANAGER" ? "/dashboard/manager" : "/dashboard/employee";
+    let dest = "/dashboard/employee";
+    if (payload.role === "MANAGER") dest = "/dashboard/manager";
+    if (payload.role === "HR") dest = "/dashboard/hr";
     return NextResponse.redirect(new URL(dest, request.url));
   }
 

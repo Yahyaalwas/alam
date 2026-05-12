@@ -12,9 +12,9 @@ const statusColors: Record<CardStatus, string> = {
 }
 
 const statusLabels: Record<CardStatus, string> = {
-  DRAFT: 'Draft',
-  SELF_SUBMITTED: 'Self Submitted',
-  MANAGER_SUBMITTED: 'Manager Submitted',
+  DRAFT: 'Stage 1 — Awaiting Self-Review',
+  SELF_SUBMITTED: 'Stage 2 — Awaiting Manager Review',
+  MANAGER_SUBMITTED: 'Stage 3 — Ready for HR Calibration',
   FINALIZED: 'Finalized',
 }
 
@@ -74,12 +74,19 @@ export default function PerformanceCardClient({ card, role, currentUserId }: Pro
 
   const isEmployee = card.employeeId === currentUserId
   const isManager = card.managerId === currentUserId
+  const isHR = role === 'HR'
   const status = card.status as CardStatus
 
   const canSelfReview = isEmployee && status === 'DRAFT'
   const canManagerReview = isManager && status === 'SELF_SUBMITTED'
-  const canFinalize = isManager && status === 'MANAGER_SUBMITTED'
+  // Only HR can finalize after manager submits
+  const canFinalize = isHR && status === 'MANAGER_SUBMITTED'
   const isFinalized = status === 'FINALIZED'
+
+  // HR sees all columns; others see based on stage
+  const showSelfCols = isHR || canSelfReview || status !== 'DRAFT'
+  const showManagerCols = isHR || canManagerReview || canFinalize || isFinalized || status === 'MANAGER_SUBMITTED'
+  const showFinalCol = isHR || canFinalize || isFinalized
 
   function updateGoal<K extends keyof GoalState>(index: number, key: K, value: GoalState[K]) {
     setGoals((prev) => {
@@ -254,8 +261,14 @@ export default function PerformanceCardClient({ card, role, currentUserId }: Pro
             </div>
           )}
         </div>
+        {isHR && status === 'MANAGER_SUBMITTED' && (
+          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
+            <strong>Calibration Stage:</strong> Both self and manager ratings are visible. Review any gaps, agree on final scores, then enter them in the Final Rating column.
+          </div>
+        )}
       </div>
 
+      {/* Goals table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">Goals</h2>
@@ -266,20 +279,22 @@ export default function PerformanceCardClient({ card, role, currentUserId }: Pro
               <tr>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Goal</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700 w-16">Weight</th>
-                {(canSelfReview || status !== 'DRAFT') && (
+                {showSelfCols && (
                   <>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700 w-24">Self Rating</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">Self Comment</th>
                   </>
                 )}
-                {(canManagerReview || canFinalize || isFinalized || status === 'MANAGER_SUBMITTED') && (
+                {showManagerCols && (
                   <>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700 w-28">Mgr Rating</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">Mgr Comment</th>
                   </>
                 )}
-                {(canFinalize || isFinalized) && (
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700 w-28">Final Rating</th>
+                {showFinalCol && (
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700 w-28">
+                    Final Rating {isHR && !isFinalized && <span className="text-xs font-normal text-amber-600">(HR only)</span>}
+                  </th>
                 )}
               </tr>
             </thead>
@@ -291,7 +306,7 @@ export default function PerformanceCardClient({ card, role, currentUserId }: Pro
                     <p className="text-xs text-gray-500">{goal.titleAr}</p>
                   </td>
                   <td className="px-4 py-3 text-gray-700">{goal.weight}%</td>
-                  {(canSelfReview || status !== 'DRAFT') && (
+                  {showSelfCols && (
                     <>
                       <td className="px-4 py-3">
                         <RatingSelect
@@ -312,7 +327,7 @@ export default function PerformanceCardClient({ card, role, currentUserId }: Pro
                       </td>
                     </>
                   )}
-                  {(canManagerReview || canFinalize || isFinalized || status === 'MANAGER_SUBMITTED') && (
+                  {showManagerCols && (
                     <>
                       <td className="px-4 py-3">
                         <RatingSelect
@@ -333,7 +348,7 @@ export default function PerformanceCardClient({ card, role, currentUserId }: Pro
                       </td>
                     </>
                   )}
-                  {(canFinalize || isFinalized) && (
+                  {showFinalCol && (
                     <td className="px-4 py-3">
                       <RatingSelect
                         value={goals[i].finalRating}
@@ -349,6 +364,7 @@ export default function PerformanceCardClient({ card, role, currentUserId }: Pro
         </div>
       </div>
 
+      {/* Competencies table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">Competencies</h2>
@@ -359,20 +375,22 @@ export default function PerformanceCardClient({ card, role, currentUserId }: Pro
               <tr>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Competency</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700 w-16">Weight</th>
-                {(canSelfReview || status !== 'DRAFT') && (
+                {showSelfCols && (
                   <>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700 w-24">Self Rating</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">Self Comment</th>
                   </>
                 )}
-                {(canManagerReview || canFinalize || isFinalized || status === 'MANAGER_SUBMITTED') && (
+                {showManagerCols && (
                   <>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700 w-28">Mgr Rating</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">Mgr Comment</th>
                   </>
                 )}
-                {(canFinalize || isFinalized) && (
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700 w-28">Final Rating</th>
+                {showFinalCol && (
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700 w-28">
+                    Final Rating {isHR && !isFinalized && <span className="text-xs font-normal text-amber-600">(HR only)</span>}
+                  </th>
                 )}
               </tr>
             </thead>
@@ -384,7 +402,7 @@ export default function PerformanceCardClient({ card, role, currentUserId }: Pro
                     <p className="text-xs text-gray-500">{comp.titleAr}</p>
                   </td>
                   <td className="px-4 py-3 text-gray-700">{comp.weight}%</td>
-                  {(canSelfReview || status !== 'DRAFT') && (
+                  {showSelfCols && (
                     <>
                       <td className="px-4 py-3">
                         <RatingSelect
@@ -405,7 +423,7 @@ export default function PerformanceCardClient({ card, role, currentUserId }: Pro
                       </td>
                     </>
                   )}
-                  {(canManagerReview || canFinalize || isFinalized || status === 'MANAGER_SUBMITTED') && (
+                  {showManagerCols && (
                     <>
                       <td className="px-4 py-3">
                         <RatingSelect
@@ -426,7 +444,7 @@ export default function PerformanceCardClient({ card, role, currentUserId }: Pro
                       </td>
                     </>
                   )}
-                  {(canFinalize || isFinalized) && (
+                  {showFinalCol && (
                     <td className="px-4 py-3">
                       <RatingSelect
                         value={comps[i].finalRating}
@@ -488,7 +506,7 @@ export default function PerformanceCardClient({ card, role, currentUserId }: Pro
                 disabled={submitting}
                 className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
               >
-                {submitting ? 'Finalizing...' : 'Finalize Card'}
+                {submitting ? 'Finalizing...' : 'Finalize & Archive'}
               </button>
             )}
           </div>

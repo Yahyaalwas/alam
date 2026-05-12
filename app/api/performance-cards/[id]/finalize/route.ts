@@ -19,6 +19,10 @@ export async function POST(
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  if (session.role !== 'HR') {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const { id } = await params
 
   const card = await prisma.performanceCard.findUnique({
@@ -28,10 +32,6 @@ export async function POST(
 
   if (!card) {
     return Response.json({ error: 'Not found' }, { status: 404 })
-  }
-
-  if (card.managerId !== session.userId) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   if (card.status !== 'MANAGER_SUBMITTED') {

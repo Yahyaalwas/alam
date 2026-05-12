@@ -31,8 +31,9 @@ export async function GET(
 
   const isEmployee = card.employeeId === session.userId
   const isManager = card.managerId === session.userId
+  const isHR = session.role === 'HR'
 
-  if (!isEmployee && !isManager) {
+  if (!isEmployee && !isManager && !isHR) {
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
