@@ -466,7 +466,7 @@ export default function TeamsPage() {
             title="Active Cards"
             value={activeCards}
             icon={<ClipboardList className="h-5 w-5" />}
-            color="violet"
+            color="purple"
           />
           <StatCard
             title="Pending My Review"
