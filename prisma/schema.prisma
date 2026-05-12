@@ -9,65 +9,133 @@ datasource db {
 }
 
 enum Role {
+  SUPER_ADMIN
+  ADMIN
+  DEPARTMENT_MANAGER
   EMPLOYEE
-  MANAGER
 }
 
 enum CardStatus {
-  DRAFT
-  SELF_SUBMITTED
-  MANAGER_SUBMITTED
+  GOAL_SETTING
+  SELF_REVIEW
+  MANAGER_REVIEW
+  CALIBRATION_MEETING
   FINALIZED
 }
 
+enum GoalType {
+  DEPARTMENT
+  PERSONAL
+}
+
+enum GoalStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+enum AuditAction {
+  GOAL_CREATED
+  GOAL_APPROVED
+  GOAL_REJECTED
+  SELF_REVIEW_SUBMITTED
+  MANAGER_REVIEW_SUBMITTED
+  CALIBRATION_COMPLETED
+  CARD_FINALIZED
+  SCORE_CHANGED
+  USER_CREATED
+  USER_UPDATED
+  DEPARTMENT_CREATED
+  CARD_CREATED
+  STAGE_ADVANCED
+}
+
+model Department {
+  id        String            @id @default(cuid())
+  nameEn    String
+  nameAr    String
+  code      String            @unique
+  managerId String?           @unique
+  manager   User?             @relation("DepartmentManager", fields: [managerId], references: [id])
+  employees User[]            @relation("DepartmentEmployees")
+  goals     Goal[]            @relation("DepartmentGoals")
+  cards     PerformanceCard[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
 model User {
-  id           String            @id @default(cuid())
-  email        String            @unique
-  password     String
-  nameEn       String
-  nameAr       String
-  role         Role              @default(EMPLOYEE)
-  managerId    String?
-  manager      User?             @relation("ManagerEmployees", fields: [managerId], references: [id])
-  employees    User[]            @relation("ManagerEmployees")
-  cards        PerformanceCard[] @relation("EmployeeCards")
-  managedCards PerformanceCard[] @relation("ManagerCards")
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id            String            @id @default(cuid())
+  email         String            @unique
+  password      String
+  nameEn        String
+  nameAr        String
+  role          Role              @default(EMPLOYEE)
+  departmentId  String?
+  department    Department?       @relation("DepartmentEmployees", fields: [departmentId], references: [id])
+  managerId     String?
+  manager       User?             @relation("Reports", fields: [managerId], references: [id])
+  directReports User[]            @relation("Reports")
+  managedDept   Department?       @relation("DepartmentManager")
+  cards         PerformanceCard[] @relation("EmployeeCards")
+  managedCards  PerformanceCard[] @relation("ManagerCards")
+  createdGoals  Goal[]            @relation("GoalCreator")
+  assignedGoals Goal[]            @relation("GoalAssignee")
+  auditLogs     AuditLog[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 }
 
 model PerformanceCard {
-  id                    String       @id @default(cuid())
-  employeeId            String
-  employee              User         @relation("EmployeeCards", fields: [employeeId], references: [id])
-  managerId             String
-  manager               User         @relation("ManagerCards", fields: [managerId], references: [id])
-  periodLabel           String
-  status                CardStatus   @default(DRAFT)
-  selfReviewLockedAt    DateTime?
-  managerReviewLockedAt DateTime?
-  finalizedAt           DateTime?
-  finalScore            Float?
-  goals                 Goal[]
-  competencies          Competency[]
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
+  id                     String       @id @default(cuid())
+  employeeId             String
+  employee               User         @relation("EmployeeCards", fields: [employeeId], references: [id])
+  managerId              String
+  manager                User         @relation("ManagerCards", fields: [managerId], references: [id])
+  departmentId           String
+  department             Department   @relation(fields: [departmentId], references: [id])
+  periodLabel            String
+  status                 CardStatus   @default(GOAL_SETTING)
+  goalSettingLockedAt    DateTime?
+  selfReviewLockedAt     DateTime?
+  managerReviewLockedAt  DateTime?
+  calibrationCompletedAt DateTime?
+  finalizedAt            DateTime?
+  calibrationNotes       String?
+  finalScore             Float?
+  goals                  Goal[]
+  competencies           Competency[]
+  auditLogs              AuditLog[]
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
 }
 
 model Goal {
-  id             String          @id @default(cuid())
-  cardId         String
-  card           PerformanceCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  titleEn        String
-  titleAr        String
-  weight         Float
-  selfRating     Int?
-  selfComment    String?
-  managerRating  Int?
-  managerComment String?
-  finalRating    Int?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id                String          @id @default(cuid())
+  cardId            String
+  card              PerformanceCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  type              GoalType        @default(PERSONAL)
+  titleEn           String
+  titleAr           String
+  descriptionEn     String?
+  descriptionAr     String?
+  weight            Float
+  departmentId      String?
+  department        Department?     @relation("DepartmentGoals", fields: [departmentId], references: [id])
+  createdById       String
+  createdBy         User            @relation("GoalCreator", fields: [createdById], references: [id])
+  assignedToId      String?
+  assignedTo        User?           @relation("GoalAssignee", fields: [assignedToId], references: [id])
+  goalStatus        GoalStatus      @default(APPROVED)
+  approvedByManager Boolean         @default(false)
+  approvalDate      DateTime?
+  selfRating        Int?
+  selfComment       String?
+  managerRating     Int?
+  managerComment    String?
+  finalRating       Int?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 }
 
 model Competency {
@@ -84,4 +152,16 @@ model Competency {
   finalRating    Int?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+}
+
+model AuditLog {
+  id        String           @id @default(cuid())
+  action    AuditAction
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  cardId    String?
+  card      PerformanceCard? @relation(fields: [cardId], references: [id])
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime         @default(now())
 }
